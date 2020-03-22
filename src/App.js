@@ -8,48 +8,66 @@ class App extends React.Component {
   constructor(props) {
     super(props)
     this.state = {
+      results: [],
       search: '',
-      allResults: [],
-      displayResults: []
+      printType: '',
+      bookType: ''
     }
   }
-// api key AIzaSyBKLB8_toaqc77eE55ZO_9EiwMdKoK1ze8
-  getSearchResults(search) {
-    const url = `https://www.googleapis.com/books/v1/volumes?q=${this.state.search}`;
 
-    const options = {
-      method: 'GET',
-      headers: {
-        'key': 'AIzaSyBKLB8_toaqc77eE55ZO_9EiwMdKoK1ze8'
-      }
+  handleSearch = (e) => {
+    this.setState({
+      search: e.target.value
+    })
+  }
+
+  handleSearchSubmit(e) {
+    e.preventDefault()
+    let url = `https://www.googleapis.com/books/v1/volumes?q=${this.state.search}&key=AIzaSyBKLB8_toaqc77eE55ZO_9EiwMdKoK1ze8`;
+    if (this.state.bookType) {
+      url += `&filter=${this.state.bookType}`
     }
+    if (this.state.printType) {
+      url += `&printType=${this.state.printType}`
+    }
+    fetch(url)
+      // .then(response => {
+      //   if(!response.ok) {
+      //     throw new Error('something went wrong')
+      //   }
+      //   return response.json()
+      // })
 
-    fetch(url, options)
-      .then(response => {
-        if(!response.ok) {
-          throw new Error('something went wrong')
-        }
-        return response.json()
-      })
       .then(response => response.json())
-      .then(data => {  
-        this.setState({
-          allResults: data,
-          displayResults: data
-        })
+      .then(data => {
+        if (data.error) {
+          if (data.error.code === 400) {
+            alert('print type does not match')
+          }
+        }
+         else {
+          this.setState({
+            results: data.items
+          })
+        }
       })
       .catch(err => {
-        this.setState({
-          error: err.message
-        })
+        console.log(err)
+        // this.setState({
+        //   error: err.message
+        // })
       })
   }
 
-  filterResults(filterParam) {
-    const newResults = this.state.allResults.filter(value => value.name === filterParam)
-
+  handlePrintTypeFilterChange(option) {
     this.setState({
-      displayResults: newResults
+      printType: option
+    })
+  }
+
+  handleBookTypeFilterChange(option) {
+    this.setState({
+      bookType: option
     })
   }
 
@@ -57,9 +75,19 @@ class App extends React.Component {
     return (
       <div>
         <h1>Google Book Search</h1>
-        <Search />
-        <Filter filterResults={this.filterResults()}/>
-        <BookList displayResults={this.state.displayResults}/>
+        <Search
+          handleSearch={this.handleSearch}
+          handleSearchSubmit={(e) => this.handleSearchSubmit(e)}
+        />
+
+        <Filter
+          printTypeFilter={e => this.handlePrintTypeFilterChange(e)}
+          bookTypeFilter={e => this.handleBookTypeFilterChange(e)}
+        />
+
+        <BookList
+          results={this.state.results}
+        />
       </div>
     )
   }
